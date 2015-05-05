@@ -31,23 +31,23 @@ class InstallController extends AbstractActionController
             $this->addResponse(array(false, 'Store DB Config - ' . $e->getMessage()));
             return $this->finish(false);
         }
-        $response = $this->getEventManager()->trigger('install.create_tables.pre',  $this, array('mapper' => $mapper));
+
+        $mm = $this->getServiceLocator()->get('modulemanager');
+        $module = $mm->getModule('Website');
+        if(null === $module) {
+            return array(false,  'Missing module - ' . $moduleName . ' - Did you run composer install?');
+        }
+        $reflection = new \ReflectionClass($module);
+        $path = dirname($reflection->getFileName());
+
+        $create = file_get_contents($path .'/data/schema.sql');
+		if(!$create) { 
+			throw new \Exception('cannot find schema file'); 
+		}
+
+        $response = $mapper->query($create);
+
 		if (!$this->addResponse($response)) { 
-			return $this->finish(false);
-		}
-
-        $response = $this->getEventManager()->trigger('install.create_tables',      $this, array('mapper' => $mapper));
-		if (!$this->addResponse($response)) {
-			return $this->finish(false);
-		}
-
-        $response = $this->getEventManager()->trigger('install.create_tables.post', $this, array('mapper' => $mapper));
-		if (!$this->addResponse($response)) {
-			return $this->finish(false);
-		}
-
-        $response = $this->getEventManager()->trigger('install.setup_multisite',    $this, array('mapper' => $mapper, 'site_name' => $params['site_name']));
-		if (!$this->addResponse($response)) {
 			return $this->finish(false);
 		}
 
@@ -78,7 +78,7 @@ class InstallController extends AbstractActionController
     public function finish($success)
     {
         $view = new ViewModel(array('responses' => $this->responses, 'success' => $success));
-        return $view->setTemplate('/speck-install/install/finish');
+        return $view->setTemplate('/website/install/finish');
     }
 
     /**

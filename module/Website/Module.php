@@ -81,7 +81,6 @@ class Module
 
     public function onBootstrap($e)
     {
-		return ;
         if($e->getRequest() instanceof \Zend\Console\Request){
             return;
         }
@@ -90,82 +89,11 @@ class Module
         $sm  = $em->getSharedManager();
 
         $em->attach(MvcEvent::EVENT_DISPATCH, array($this , 'install'), 100);
-
-        //install event listener
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckCatalog'        ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckContact'        ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'ZfcUser'             ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckAddress'        ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckCart'           ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckUserAddress'    ); });
-        $sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckRandomProducts' ); });
-        //$sm->attach('Website\Controller\InstallController', 'install.create_tables', function ($e) { return $this->createTables($e, 'SpeckOrder'          ); });
-
-        $sm->attach('Website\Controller\InstallController', 'install.setup_multisite', array($this, 'setupMultiSite'));
-        $sm->attach('Website\Controller\InstallController', 'install.setup_multisite', function ($e) { return $this->createTables($e, 'SpeckMultisite' ); });
-
-        $sm->attach('Website\Controller\InstallController', 'install.setup_multisite', function ($e) {
-            $name = $e->getParam('website_name');
-            $query = "insert into `website`(`website_id`, `name`)VALUES(1, '{$name}')";
-            $e->getParam('mapper')->query($query);
-            return array('true', 'Website inserted site name - "' . $name . '"');
-        });
-    }
-
-    public function createTables($e, $moduleName)
-    {
-        $mm = $e->getTarget()->getServiceLocator()->get('modulemanager');
-
-        $module = $mm->getModule($moduleName);
-        if(null === $module) {
-            return array(false,  'Missing module - ' . $moduleName . ' - Did you run composer install?');
-        }
-        $reflection = new \ReflectionClass($module);
-        $path = dirname($reflection->getFileName());
-
-        try {
-            $create = file_get_contents($path .'/data/schema.sql');
-            if(!$create) { throw new \Exception('cannot find schema file'); }
-            $mapper = $e->getParam('mapper');
-            $mapper->query($create);
-        } catch (\Exception $e) {
-            return array(false, "Websiteer was unable to complete 'createTables' for {$moduleName} - " . $e->getMessage());
-        }
-        return array(true, "Websiteer ran 'createTables' for {$moduleName}");
-    }
-
-    public function setupMultisite($e)
-    {
-        $multisite = $e->getParam('multi_site');
-
-        $mm = $e->getTarget()->getServiceLocator()->get('modulemanager');
-
-        $module = $mm->getModule('SpeckMultisite');
-        if(null === $module) {
-            return array(false,  'setup multisite - Missing module - SpeckMultisite - Did you run composer install?');
-        }
-        $reflection = new \ReflectionClass($module);
-        $path = dirname($reflection->getFileName());
-        try {
-            $config = include($path .'/config/module.SpeckMultisite.dist.php');
-            $content = "<?php\nreturn " . var_export($config, 1) . ';';
-            file_put_contents('config/autoload/multisite.global.php', $content);
-        } catch (\Exception $e) {
-            return array(false, "Websiteer was unable to complete 'setupMultisite' for {$moduleName} - " . $e->getMessage());
-        }
-
-        return array(true, "stored SpeckMultisite config");
-    }
-
-
-    public function createZfcUserTables($e)
-    {
-        $this->createTables('ZfcUser');
-    }
+	}
 
     public function install($e)
     {
-        if($e->getRouteMatch()->getParam('controller') === 'speck_install') {
+        if($e->getRouteMatch()->getParam('controller') === 'website_install') {
             return;
         }
         $response = $e->getResponse();
